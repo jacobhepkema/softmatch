@@ -110,10 +110,10 @@ def generate_html(data, output_path):
                 const strandClass = hit.strand === 1 ? 'fwd' : 'rev';
 
                 const annot = document.createElement('div');
-                annot.className = `annotation ${strandClass}`;
-                annot.style.left = `${startCh}ch`;
-                annot.style.width = `${widthCh}ch`;
-                annot.style.top = `${topOffset}px`;
+                annot.className = `annotation ${{strandClass}}`;
+                annot.style.left = `${{startCh}}ch`;
+                annot.style.width = `${{widthCh}}ch`;
+                annot.style.top = `${{topOffset}}px`;
                 annot.style.backgroundColor = color;
                 annot.style.setProperty('--annot-color', color);
 
