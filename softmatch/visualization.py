@@ -176,27 +176,17 @@ def generate_cluster_html(clusters, output_path):
         for r in reads:
             offset = max_prefix - r['hits'][0]['start']
 
-            hits_viz = []
-            for hit in r['hits']:
-                hits_viz.append({
-                    'name': hit['name'],
-                    'start': hit['start'] + offset,
-                    'len': hit['len'],
-                    'strand': hit['strand'],
-                    'errors': hit['errors']
-                })
-
             cluster_reads.append({
                 'id': r['id'],
-                'total_len': r['seq_len'] + offset,
-                'hits': hits_viz,
+                'seq_len': r['seq_len'],
+                'hits': r['hits'],
                 'offset': offset
             })
 
         cluster_data.append({
             'signature': sig_name,
             'reads': cluster_reads,
-            'max_width': max(r['total_len'] for r in cluster_reads)
+            'max_width': max(r['seq_len'] + r['offset'] for r in cluster_reads)
         })
 
     html_content = f"""<!DOCTYPE html>
@@ -296,8 +286,8 @@ def generate_cluster_html(clusters, output_path):
             cluster.reads.forEach(read => {{
                 const row = document.createElement('div');
                 row.className = 'read-row';
-                row.style.width = read.total_len + 'ch';
-                row.style.marginLeft = '0'; // Everything is already offset
+                row.style.width = read.seq_len + 'ch';
+                row.style.marginLeft = read.offset + 'ch';
 
                 read.hits.forEach((hit, idx) => {{
                     const block = document.createElement('div');
