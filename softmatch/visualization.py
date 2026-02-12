@@ -12,23 +12,65 @@ def generate_html(data, output_path):
     <meta charset="UTF-8">
     <title>Softmatch Visualization</title>
     <style>
-        :root {{ --bg: #f9f9f9; --seq-bg: #ffffff; --annot-color: #6d5dfc; }}
-        body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: var(--bg); padding: 20px; color: #333; }}
-        h1 {{ font-size: 20px; margin-bottom: 20px; }}
-        .read-container {{ background: var(--seq-bg); border: 1px solid #ddd; border-radius: 8px; margin-bottom: 20px; padding: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); overflow-x: auto; }}
-        .read-header {{ font-weight: bold; font-size: 14px; margin-bottom: 10px; color: #555; border-bottom: 1px solid #eee; padding-bottom: 5px; }}
+        :root {{
+            --bg: #f5f7f9;
+            --seq-bg: #ffffff;
+            --header-text: #2c3e50;
+            --muted-text: #7f8c8d;
+            --border-color: #e1e4e8;
+            --annot-color: #6d5dfc;
+        }}
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg);
+            padding: 40px 20px;
+            color: #333;
+            margin: 0;
+        }}
+        .container-wrapper {{ max-width: 1200px; margin: 0 auto; }}
+        h1 {{ font-size: 24px; margin-bottom: 30px; color: var(--header-text); font-weight: 600; }}
+        .read-container {{
+            background: var(--seq-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            margin-bottom: 24px;
+            padding: 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+            overflow-x: auto;
+        }}
+        .read-header {{
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            font-size: 13px;
+            margin-bottom: 16px;
+            color: var(--muted-text);
+            display: flex;
+            align-items: center;
+        }}
+        .read-header::before {{
+            content: 'ID:';
+            font-weight: bold;
+            margin-right: 8px;
+            color: #bdc3c7;
+            font-family: -apple-system, sans-serif;
+        }}
 
         /* Benchling-like Visualization Wrapper */
         .viz-wrapper {{
             position: relative;
-            font-family: 'Menlo', 'Consolas', 'Courier New', monospace;
-            font-size: 14px;
-            line-height: 1.5;
-            padding-top: 40px;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            font-size: 15px;
+            line-height: 1.6;
+            padding: 45px 0 30px 0;
             display: inline-block;
+            min-width: 100%;
         }}
 
-        .sequence-layer {{ color: #333; white-space: pre; }}
+        .sequence-layer {{
+            color: #2c3e50;
+            white-space: pre;
+            position: relative;
+            z-index: 2;
+        }}
 
         /* Annotation Tracks */
         .annotation-layer {{
@@ -42,82 +84,183 @@ def generate_html(data, output_path):
 
         .annotation {{
             position: absolute;
-            height: 8px;
+            height: 10px;
             background: var(--annot-color);
-            border-radius: 2px;
-            opacity: 0.8;
+            border-radius: 3px;
+            opacity: 0.75;
             cursor: pointer;
             pointer-events: auto;
-            transition: all 0.2s;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 3;
         }}
 
-        .annotation:hover {{ opacity: 1; height: 12px; transform: translateY(-2px); box-shadow: 0 2px 4px rgba(0,0,0,0.2); }}
+        .annotation:hover {{
+            opacity: 1;
+            height: 14px;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }}
 
         /* Arrow heads for direction */
         .annotation.fwd::after {{
-            content: ''; position: absolute; right: -4px; top: -2px;
-            border-top: 6px solid transparent; border-bottom: 6px solid transparent;
-            border-left: 6px solid var(--annot-color);
+            content: ''; position: absolute; right: -5px; top: -2px;
+            border-top: 7px solid transparent; border-bottom: 7px solid transparent;
+            border-left: 7px solid var(--annot-color);
         }}
 
         .annotation.rev::before {{
-            content: ''; position: absolute; left: -4px; top: -2px;
-            border-top: 6px solid transparent; border-bottom: 6px solid transparent;
-            border-right: 6px solid var(--annot-color);
+            content: ''; position: absolute; left: -5px; top: -2px;
+            border-top: 7px solid transparent; border-bottom: 7px solid transparent;
+            border-right: 7px solid var(--annot-color);
         }}
 
         .label {{
-            position: absolute; top: -18px; font-size: 10px; color: var(--annot-color); font-weight: bold; white-space: nowrap;
+            position: absolute; top: -20px; font-size: 11px; color: var(--annot-color); font-weight: 700; white-space: nowrap;
+            background: rgba(255,255,255,0.9);
+            padding: 0 4px;
+            border-radius: 3px;
+        }}
+
+        /* Indices (Benchling style) */
+        .indices-layer {{
+            position: relative;
+            height: 20px;
+            margin-top: 8px;
+            border-top: 1px solid #f0f0f0;
+        }}
+        .index-tick {{
+            position: absolute;
+            top: 0;
+            height: 4px;
+            border-left: 1px solid #d1d5da;
+        }}
+        .index-label {{
+            position: absolute;
+            top: 6px;
+            font-size: 10px;
+            color: #959da5;
+            transform: translateX(-50%);
+            white-space: nowrap;
         }}
 
         .tooltip {{
-            display: none; position: absolute; background: #333; color: #fff; padding: 5px 10px; border-radius: 4px; font-size: 12px; z-index: 100; pointer-events: none;
+            display: none;
+            position: absolute;
+            background: rgba(44, 62, 80, 0.95);
+            color: #fff;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 12px;
+            z-index: 1000;
+            pointer-events: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            backdrop-filter: blur(4px);
+            line-height: 1.4;
         }}
     </style>
 </head>
 <body>
-    <h1>Softmatch Results <span style="font-weight:normal; font-size:14px; color:#666">Top {len(data)} reads with hits</span></h1>
-    <div id="tooltip" class="tooltip"></div>
-    <div id="container"></div>
+    <div class="container-wrapper">
+        <h1>Softmatch Results <span style="font-weight:normal; font-size:15px; color:var(--muted-text); margin-left: 10px;">Top {len(data)} reads with hits</span></h1>
+        <div id="tooltip" class="tooltip"></div>
+        <div id="container"></div>
+    </div>
 
     <script>
         const data = {json.dumps(data)};
         const container = document.getElementById('container');
         const tooltip = document.getElementById('tooltip');
 
+        function escapeHTML(str) {{
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }}
+
         data.forEach(read => {{
             const div = document.createElement('div');
             div.className = 'read-container';
 
-            // Build Annotation HTML
-            let annotHTML = '';
+            // Create header
+            const header = document.createElement('div');
+            header.className = 'read-header';
+            header.textContent = read.id;
+            div.appendChild(header);
+
+            // Create visualization wrapper
+            const vizWrapper = document.createElement('div');
+            vizWrapper.className = 'viz-wrapper';
+
+            // Build Annotation Layer
+            const annotLayer = document.createElement('div');
+            annotLayer.className = 'annotation-layer';
 
             read.hits.forEach((hit, idx) => {{
                 const startCh = hit.start;
                 const widthCh = hit.len;
-                const topOffset = 10 + (idx % 3) * 12; // Stagger overlapping annotations
+                const topOffset = 12 + (idx % 3) * 15;
 
-                // Color cycling
-                const colors = ['#6d5dfc', '#fc5d5d', '#5dfca8', '#fcb05d'];
+                const colors = ['#6d5dfc', '#e74c3c', '#2ecc71', '#f39c12', '#3498db', '#9b59b6'];
                 const color = colors[idx % colors.length];
                 const strandClass = hit.strand === 1 ? 'fwd' : 'rev';
 
-                annotHTML += `<div class="annotation ${{strandClass}}" style="left:${{startCh}}ch; width:${{widthCh}}ch; top:${{topOffset}}px; background-color:${{color}}; --annot-color:${{color}};" onmouseover="showTooltip(event, '${{hit.name}}', ${{hit.errors}}, '${{hit.match_seq}}', ${{hit.strand}})" onmouseout="hideTooltip()"><div class="label" style="color:${{color}}">${{hit.name}}</div></div>`;
-            }});
+                const annot = document.createElement('div');
+                annot.className = `annotation ${{strandClass}}`;
+                annot.style.left = `${{startCh}}ch`;
+                annot.style.width = `${{widthCh}}ch`;
+                annot.style.top = `${{topOffset}}px`;
+                annot.style.backgroundColor = color;
+                annot.style.setProperty('--annot-color', color);
 
-            div.innerHTML = `
-                <div class="read-header">${{read.id}}</div>
-                <div class="viz-wrapper"><div class="annotation-layer">${{annotHTML}}</div><div class="sequence-layer">${{read.seq}}</div></div>
-            `;
+                const label = document.createElement('div');
+                label.className = 'label';
+                label.style.color = color;
+                label.textContent = hit.name;
+                annot.appendChild(label);
+
+                annot.onmouseover = (e) => showTooltip(e, hit);
+                annot.onmouseout = hideTooltip;
+
+                annotLayer.appendChild(annot);
+            }});
+            vizWrapper.appendChild(annotLayer);
+
+            // Sequence Layer
+            const seqLayer = document.createElement('div');
+            seqLayer.className = 'sequence-layer';
+            seqLayer.textContent = read.seq;
+            vizWrapper.appendChild(seqLayer);
+
+            // Indices Layer
+            const indicesLayer = document.createElement('div');
+            indicesLayer.className = 'indices-layer';
+            for (let i = 0; i < read.seq.length; i++) {{
+                const pos = i + 1;
+                if (pos === 1 || pos % 10 === 0) {{
+                    const tick = document.createElement('div');
+                    tick.className = 'index-tick';
+                    tick.style.left = `${{i + 0.5}}ch`;
+                    indicesLayer.appendChild(tick);
+
+                    const lbl = document.createElement('div');
+                    lbl.className = 'index-label';
+                    lbl.style.left = `${{i + 0.5}}ch`;
+                    lbl.textContent = pos;
+                    indicesLayer.appendChild(lbl);
+                }}
+            }}
+            vizWrapper.appendChild(indicesLayer);
+
+            div.appendChild(vizWrapper);
             container.appendChild(div);
         }});
 
-        function showTooltip(e, name, err, seq, strand) {{
+        function showTooltip(e, hit) {{
             tooltip.style.display = 'block';
             tooltip.style.left = e.pageX + 10 + 'px';
             tooltip.style.top = e.pageY + 10 + 'px';
-            const strandText = strand === 1 ? 'Forward' : 'Reverse Complement';
-            tooltip.innerHTML = `<strong>${{name}}</strong> (${{strandText}})<br>Seq: ${{seq}}<br>Errors: ${{err}}`;
+            const strandText = hit.strand === 1 ? 'Forward' : 'Reverse Complement';
+            tooltip.innerHTML = `<strong>${{escapeHTML(hit.name)}}</strong> (${{strandText}})<br>Seq: ${{escapeHTML(hit.match_seq)}}<br>Errors: ${{hit.errors}}`;
         }}
 
         function hideTooltip() {{
