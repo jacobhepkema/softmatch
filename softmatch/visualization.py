@@ -124,23 +124,27 @@ def generate_html(data, output_path):
         /* Indices (Benchling style) */
         .indices-layer {{
             position: relative;
-            height: 20px;
+            height: 24px;
             margin-top: 8px;
             border-top: 1px solid #f0f0f0;
         }}
-        .index-tick {{
+        .index-group {{
             position: absolute;
             top: 0;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }}
+        .index-tick {{
             height: 4px;
             border-left: 1px solid #d1d5da;
         }}
         .index-label {{
-            position: absolute;
-            top: 6px;
             font-size: 10px;
             color: #959da5;
-            transform: translateX(-50%);
             white-space: nowrap;
+            margin-top: 2px;
         }}
 
         .tooltip {{
@@ -237,16 +241,20 @@ def generate_html(data, output_path):
             for (let i = 0; i < read.seq.length; i++) {{
                 const pos = i + 1;
                 if (pos === 1 || pos % 10 === 0) {{
+                    const group = document.createElement('div');
+                    group.className = 'index-group';
+                    group.style.left = `${{i + 0.5}}ch`;
+
                     const tick = document.createElement('div');
                     tick.className = 'index-tick';
-                    tick.style.left = `${{i + 0.5}}ch`;
-                    indicesLayer.appendChild(tick);
+                    group.appendChild(tick);
 
                     const lbl = document.createElement('div');
                     lbl.className = 'index-label';
-                    lbl.style.left = `${{i + 0.5}}ch`;
                     lbl.textContent = pos;
-                    indicesLayer.appendChild(lbl);
+                    group.appendChild(lbl);
+
+                    indicesLayer.appendChild(group);
                 }}
             }}
             vizWrapper.appendChild(indicesLayer);
