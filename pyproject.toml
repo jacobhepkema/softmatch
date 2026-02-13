@@ -1,0 +1,16 @@
+[project]
+name = "softmatch"
+version = "0.1.0"
+description = "Fuzzy matching of adapter sequences in FASTQ files"
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "regex",
+]
+
+[project.scripts]
+softmatch = "softmatch.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
