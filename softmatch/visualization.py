@@ -190,20 +190,15 @@ def generate_html(data, output_path):
             header.className = 'read-header';
             header.textContent = read.id;
             div.appendChild(header);
-
             // Create visualization wrapper
             const vizWrapper = document.createElement('div');
             vizWrapper.className = 'viz-wrapper';
-
-            // Build Annotation Layer
             const annotLayer = document.createElement('div');
             annotLayer.className = 'annotation-layer';
-
             read.hits.forEach((hit, idx) => {{
                 const startCh = hit.start;
                 const widthCh = hit.len;
                 const topOffset = 12 + (idx % 3) * 15;
-
                 const colors = ['#6d5dfc', '#e74c3c', '#2ecc71', '#f39c12', '#3498db', '#9b59b6'];
                 const color = colors[idx % colors.length];
                 const strandClass = hit.strand === 1 ? 'fwd' : 'rev';
@@ -215,7 +210,6 @@ def generate_html(data, output_path):
                 annot.style.top = `${{topOffset}}px`;
                 annot.style.backgroundColor = color;
                 annot.style.setProperty('--annot-color', color);
-
                 const label = document.createElement('div');
                 label.className = 'label';
                 label.style.color = color;
@@ -274,6 +268,176 @@ def generate_html(data, output_path):
         function hideTooltip() {{
             tooltip.style.display = 'none';
         }}
+    </script>
+</body>
+</html>
+"""
+    with open(output_path, 'w') as f:
+        f.write(html_content)
+
+def generate_cluster_html(clusters, output_path):
+    """
+    Generates a minimalist clustered visualization.
+    """
+
+    # Pre-calculate offsets and widths for each cluster
+    cluster_data = []
+    for sig, reads in clusters.items():
+        if not reads: continue
+
+        sig_name = " + ".join([f"{name}({'+' if strand == 1 else '-'})" for name, strand in sig])
+
+        # Max distance before the first adapter to align everything
+        max_prefix = max(r['hits'][0]['start'] for r in reads)
+
+        cluster_reads = []
+        for r in reads:
+            offset = max_prefix - r['hits'][0]['start']
+
+            cluster_reads.append({
+                'id': r['id'],
+                'seq_len': r['seq_len'],
+                'hits': r['hits'],
+                'offset': offset
+            })
+
+        cluster_data.append({
+            'signature': sig_name,
+            'reads': cluster_reads,
+            'max_width': max(r['seq_len'] + r['offset'] for r in cluster_reads)
+        })
+
+    html_content = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Softmatch Cluster Visualization</title>
+    <style>
+        body {{ font-family: sans-serif; background: #f0f0f0; padding: 20px; }}
+        .cluster-container {{ background: white; border-radius: 8px; padding: 15px; margin-bottom: 30px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }}
+        .cluster-title {{ font-size: 16px; font-weight: bold; margin-bottom: 10px; color: #444; border-bottom: 1px solid #eee; padding-bottom: 5px; }}
+
+        .viz-area {{
+            position: relative;
+            font-family: monospace;
+            font-size: 10px;
+            overflow-x: auto;
+            white-space: nowrap;
+        }}
+
+        .read-row {{
+            position: relative;
+            height: 8px;
+            margin-bottom: 1px;
+            background: #e0e0e0;
+            display: block;
+        }}
+
+        .adapter-block {{
+            position: absolute;
+            height: 100%;
+            opacity: 0.8;
+        }}
+
+        .adapter-block.fwd::after {{
+            content: ''; position: absolute; right: -2px; top: 0;
+            border-top: 4px solid transparent; border-bottom: 4px solid transparent;
+            border-left: 4px solid inherit;
+            border-left-color: inherit;
+        }}
+
+        .adapter-block.rev::before {{
+            content: ''; position: absolute; left: -2px; top: 0;
+            border-top: 4px solid transparent; border-bottom: 4px solid transparent;
+            border-right: 4px solid inherit;
+            border-right-color: inherit;
+        }}
+
+        .tooltip {{
+            display: none; position: absolute; background: #333; color: #fff; padding: 5px 10px; border-radius: 4px; font-size: 12px; z-index: 100; pointer-events: none;
+        }}
+
+        .color-0 {{ background-color: #6d5dfc; }}
+        .color-1 {{ background-color: #fc5d5d; }}
+        .color-2 {{ background-color: #5dfca8; }}
+        .color-3 {{ background-color: #fcb05d; }}
+        .color-4 {{ background-color: #5dc3fc; }}
+        .color-5 {{ background-color: #bc5dfc; }}
+
+        .color-0.fwd::after {{ border-left-color: #6d5dfc; }}
+        .color-0.rev::before {{ border-right-color: #6d5dfc; }}
+        .color-1.fwd::after {{ border-left-color: #fc5d5d; }}
+        .color-1.rev::before {{ border-right-color: #fc5d5d; }}
+        .color-2.fwd::after {{ border-left-color: #5dfca8; }}
+        .color-2.rev::before {{ border-right-color: #5dfca8; }}
+        .color-3.fwd::after {{ border-left-color: #fcb05d; }}
+        .color-3.rev::before {{ border-right-color: #fcb05d; }}
+        .color-4.fwd::after {{ border-left-color: #5dc3fc; }}
+        .color-4.rev::before {{ border-right-color: #5dc3fc; }}
+        .color-5.fwd::after {{ border-left-color: #bc5dfc; }}
+        .color-5.rev::before {{ border-right-color: #bc5dfc; }}
+    </style>
+</head>
+<body>
+    <h1>Clustered Read Summary</h1>
+    <div id="tooltip" class="tooltip"></div>
+    <div id="container"></div>
+
+    <script>
+        const clusters = {json.dumps(cluster_data)};
+        const container = document.getElementById('container');
+        const tooltip = document.getElementById('tooltip');
+
+        clusters.forEach(cluster => {{
+            const clusterDiv = document.createElement('div');
+            clusterDiv.className = 'cluster-container';
+
+            const title = document.createElement('div');
+            title.className = 'cluster-title';
+            const count = cluster.reads.length;
+            title.textContent = cluster.signature + ' (' + count + ' read' + (count !== 1 ? 's' : '') + ')';
+            clusterDiv.appendChild(title);
+
+            const vizArea = document.createElement('div');
+            vizArea.className = 'viz-area';
+
+            cluster.reads.forEach(read => {{
+                const row = document.createElement('div');
+                row.className = 'read-row';
+                row.style.width = read.seq_len + 'ch';
+                row.style.marginLeft = read.offset + 'ch';
+
+                read.hits.forEach((hit, idx) => {{
+                    const block = document.createElement('div');
+                    const colorIdx = idx % 6;
+                    block.className = 'adapter-block color-' + colorIdx + ' ' + (hit.strand === 1 ? 'fwd' : 'rev');
+                    block.style.left = hit.start + 'ch';
+                    block.style.width = hit.len + 'ch';
+                    block.onmouseover = (e) => showTooltip(e, hit, read.id);
+                    block.onmouseout = hideTooltip;
+
+                    row.appendChild(block);
+                }});
+
+                vizArea.appendChild(row);
+            }});
+
+            clusterDiv.appendChild(vizArea);
+            container.appendChild(clusterDiv);
+        }});
+
+        function showTooltip(e, hit, readId) {{
+            tooltip.style.display = 'block';
+            tooltip.style.left = e.pageX + 10 + 'px';
+            tooltip.style.top = e.pageY + 10 + 'px';
+            const strandText = hit.strand === 1 ? 'Forward' : 'Reverse Complement';
+            tooltip.innerHTML = `<strong>${{readId}}</strong><br>Adapter: ${{hit.name}} (${{strandText}})<br>Errors: ${{hit.errors}}`;
+        }}
+
+        function hideTooltip() {{
+            tooltip.style.display = 'none';
+        }}
+
     </script>
 </body>
 </html>
