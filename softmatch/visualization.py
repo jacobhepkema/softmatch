@@ -189,6 +189,9 @@ def generate_cluster_html(clusters, output_path):
             'max_width': max(r['seq_len'] + r['offset'] for r in cluster_reads)
         })
 
+    # Sort clusters by abundance (descending)
+    cluster_data.sort(key=lambda x: len(x['reads']), reverse=True)
+
     html_content = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -196,8 +199,8 @@ def generate_cluster_html(clusters, output_path):
     <title>Softmatch Cluster Visualization</title>
     <style>
         body {{ font-family: sans-serif; background: #f0f0f0; padding: 20px; }}
-        .cluster-container {{ background: white; border-radius: 8px; padding: 15px; margin-bottom: 30px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }}
-        .cluster-title {{ font-size: 16px; font-weight: bold; margin-bottom: 10px; color: #444; border-bottom: 1px solid #eee; padding-bottom: 5px; }}
+        .cluster-container {{ background: white; border-radius: 8px; padding: 10px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }}
+        .cluster-title {{ font-size: 14px; font-weight: bold; margin-bottom: 5px; color: #444; border-bottom: 1px solid #eee; padding-bottom: 2px; }}
 
         .viz-area {{
             position: relative;
@@ -209,8 +212,8 @@ def generate_cluster_html(clusters, output_path):
 
         .read-row {{
             position: relative;
-            height: 8px;
-            margin-bottom: 1px;
+            height: 4px;
+            margin-bottom: 0px;
             background: #e0e0e0;
             display: block;
         }}
@@ -223,20 +226,53 @@ def generate_cluster_html(clusters, output_path):
 
         .adapter-block.fwd::after {{
             content: ''; position: absolute; right: -2px; top: 0;
-            border-top: 4px solid transparent; border-bottom: 4px solid transparent;
-            border-left: 4px solid inherit;
+            border-top: 2px solid transparent; border-bottom: 2px solid transparent;
+            border-left: 2px solid inherit;
             border-left-color: inherit;
         }}
 
         .adapter-block.rev::before {{
             content: ''; position: absolute; left: -2px; top: 0;
-            border-top: 4px solid transparent; border-bottom: 4px solid transparent;
-            border-right: 4px solid inherit;
+            border-top: 2px solid transparent; border-bottom: 2px solid transparent;
+            border-right: 2px solid inherit;
             border-right-color: inherit;
         }}
 
         .tooltip {{
             display: none; position: absolute; background: #333; color: #fff; padding: 5px 10px; border-radius: 4px; font-size: 12px; z-index: 100; pointer-events: none;
+        }}
+
+        #summary-table {{
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            font-size: 14px;
+        }}
+
+        #summary-table th, #summary-table td {{
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }}
+
+        #summary-table th {{
+            background-color: #f8f8f8;
+            font-weight: bold;
+            color: #555;
+        }}
+
+        #summary-table tr:hover {{
+            background-color: #f1f1f1;
+        }}
+
+        #summary-table a {{
+            color: #6d5dfc;
+            text-decoration: none;
+            font-weight: bold;
         }}
 
         .color-0 {{ background-color: #6d5dfc; }}
@@ -262,17 +298,46 @@ def generate_cluster_html(clusters, output_path):
 </head>
 <body>
     <h1>Clustered Read Summary</h1>
+    <table id="summary-table">
+        <thead>
+            <tr>
+                <th>Adapter Signature</th>
+                <th>Read Count</th>
+            </tr>
+        </thead>
+        <tbody id="summary-body"></tbody>
+    </table>
+
     <div id="tooltip" class="tooltip"></div>
     <div id="container"></div>
 
     <script>
         const clusters = {json.dumps(cluster_data)};
         const container = document.getElementById('container');
+        const summaryBody = document.getElementById('summary-body');
         const tooltip = document.getElementById('tooltip');
 
-        clusters.forEach(cluster => {{
+        clusters.forEach((cluster, clusterIdx) => {{
+            const clusterId = 'cluster-' + clusterIdx;
+
+            // Add to summary table
+            const tr = document.createElement('tr');
+            const tdSig = document.createElement('td');
+            const a = document.createElement('a');
+            a.href = '#' + clusterId;
+            a.textContent = cluster.signature;
+            tdSig.appendChild(a);
+
+            const tdCount = document.createElement('td');
+            tdCount.textContent = cluster.reads.length;
+
+            tr.appendChild(tdSig);
+            tr.appendChild(tdCount);
+            summaryBody.appendChild(tr);
+
             const clusterDiv = document.createElement('div');
             clusterDiv.className = 'cluster-container';
+            clusterDiv.id = clusterId;
 
             const title = document.createElement('div');
             title.className = 'cluster-title';
