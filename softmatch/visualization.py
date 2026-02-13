@@ -1,10 +1,17 @@
 import json
 import html
 
-def generate_html(data, output_path):
+def generate_html(data, output_path, query_names=None):
     """
     Generates a standalone HTML with interactive visualization.
     """
+    if query_names is None:
+        # Discover unique query names from data
+        names = set()
+        for read in data:
+            for hit in read['hits']:
+                names.add(hit['name'])
+        query_names = sorted(list(names))
 
     html_content = f"""<!DOCTYPE html>
 <html lang="en">
@@ -172,6 +179,13 @@ def generate_html(data, output_path):
 
     <script>
         const data = {json.dumps(data)};
+        const queryNames = {json.dumps(query_names)};
+        const colors = ['#6d5dfc', '#e74c3c', '#2ecc71', '#f39c12', '#3498db', '#9b59b6'];
+        const colorMap = {{}};
+        queryNames.forEach((name, i) => {{
+            colorMap[name] = colors[i % colors.length];
+        }});
+
         const container = document.getElementById('container');
         const tooltip = document.getElementById('tooltip');
 
@@ -199,8 +213,7 @@ def generate_html(data, output_path):
                 const startCh = hit.start;
                 const widthCh = hit.len;
                 const topOffset = 12 + (idx % 3) * 15;
-                const colors = ['#6d5dfc', '#e74c3c', '#2ecc71', '#f39c12', '#3498db', '#9b59b6'];
-                const color = colors[idx % colors.length];
+                const color = colorMap[hit.name] || '#6d5dfc';
                 const strandClass = hit.strand === 1 ? 'fwd' : 'rev';
 
                 const annot = document.createElement('div');
@@ -275,10 +288,17 @@ def generate_html(data, output_path):
     with open(output_path, 'w') as f:
         f.write(html_content)
 
-def generate_cluster_html(clusters, output_path):
+def generate_cluster_html(clusters, output_path, query_names=None):
     """
     Generates a minimalist clustered visualization.
     """
+    if query_names is None:
+        # Discover unique query names from clusters
+        names = set()
+        for sig, reads in clusters.items():
+            for name, strand in sig:
+                names.add(name)
+        query_names = sorted(list(names))
 
     # Pre-calculate offsets and widths for each cluster
     cluster_data = []
@@ -394,24 +414,24 @@ def generate_cluster_html(clusters, output_path):
         }}
 
         .color-0 {{ background-color: #6d5dfc; }}
-        .color-1 {{ background-color: #fc5d5d; }}
-        .color-2 {{ background-color: #5dfca8; }}
-        .color-3 {{ background-color: #fcb05d; }}
-        .color-4 {{ background-color: #5dc3fc; }}
-        .color-5 {{ background-color: #bc5dfc; }}
+        .color-1 {{ background-color: #e74c3c; }}
+        .color-2 {{ background-color: #2ecc71; }}
+        .color-3 {{ background-color: #f39c12; }}
+        .color-4 {{ background-color: #3498db; }}
+        .color-5 {{ background-color: #9b59b6; }}
 
         .color-0.fwd::after {{ border-left-color: #6d5dfc; }}
         .color-0.rev::before {{ border-right-color: #6d5dfc; }}
-        .color-1.fwd::after {{ border-left-color: #fc5d5d; }}
-        .color-1.rev::before {{ border-right-color: #fc5d5d; }}
-        .color-2.fwd::after {{ border-left-color: #5dfca8; }}
-        .color-2.rev::before {{ border-right-color: #5dfca8; }}
-        .color-3.fwd::after {{ border-left-color: #fcb05d; }}
-        .color-3.rev::before {{ border-right-color: #fcb05d; }}
-        .color-4.fwd::after {{ border-left-color: #5dc3fc; }}
-        .color-4.rev::before {{ border-right-color: #5dc3fc; }}
-        .color-5.fwd::after {{ border-left-color: #bc5dfc; }}
-        .color-5.rev::before {{ border-right-color: #bc5dfc; }}
+        .color-1.fwd::after {{ border-left-color: #e74c3c; }}
+        .color-1.rev::before {{ border-right-color: #e74c3c; }}
+        .color-2.fwd::after {{ border-left-color: #2ecc71; }}
+        .color-2.rev::before {{ border-right-color: #2ecc71; }}
+        .color-3.fwd::after {{ border-left-color: #f39c12; }}
+        .color-3.rev::before {{ border-right-color: #f39c12; }}
+        .color-4.fwd::after {{ border-left-color: #3498db; }}
+        .color-4.rev::before {{ border-right-color: #3498db; }}
+        .color-5.fwd::after {{ border-left-color: #9b59b6; }}
+        .color-5.rev::before {{ border-right-color: #9b59b6; }}
     </style>
 </head>
 <body>
@@ -431,6 +451,12 @@ def generate_cluster_html(clusters, output_path):
 
     <script>
         const clusters = {json.dumps(cluster_data)};
+        const queryNames = {json.dumps(query_names)};
+        const nameToIdx = {{}};
+        queryNames.forEach((name, i) => {{
+            nameToIdx[name] = i;
+        }});
+
         const container = document.getElementById('container');
         const summaryBody = document.getElementById('summary-body');
         const tooltip = document.getElementById('tooltip');
@@ -472,9 +498,9 @@ def generate_cluster_html(clusters, output_path):
                 row.style.width = 'calc(' + read.seq_len + ' * var(--base-w))';
                 row.style.marginLeft = 'calc(' + read.offset + ' * var(--base-w))';
 
-                read.hits.forEach((hit, idx) => {{
+                read.hits.forEach((hit) => {{
                     const block = document.createElement('div');
-                    const colorIdx = idx % 6;
+                    const colorIdx = nameToIdx[hit.name] % 6;
                     block.className = 'adapter-block color-' + colorIdx + ' ' + (hit.strand === 1 ? 'fwd' : 'rev');
                     block.style.left = 'calc(' + hit.start + ' * var(--base-w))';
                     block.style.width = 'calc(' + hit.len + ' * var(--base-w))';
