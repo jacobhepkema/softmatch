@@ -85,30 +85,30 @@ def main():
                     if total_reads % 10000 == 0:
                         print(f"Processed {total_reads} reads...", end='\r')
 
+                    read_id = header.split()[0] # Take first part of header
                     if hits:
                         reads_with_hits += 1
-                        read_id = header.split()[0] # Take first part of header
 
                         # Write to text file
                         for hit in hits:
                             strand_str = "+" if hit['strand'] == 1 else "-"
                             out_f.write(f"{read_id}\t{hit['name']}\t{hit['start']}\t{hit['end']}\t{strand_str}\t{hit['errors']}\t{hit['match_seq']}\n")
 
-                        # Save to HTML buffer (limit check)
-                        if not args.no_html and len(results_for_html) < HTML_READ_LIMIT:
-                            results_for_html.append({
-                                'id': read_id,
-                                'seq': seq,
-                                'hits': hits
-                            })
+                    # Save to HTML buffer (limit check)
+                    if not args.no_html and len(results_for_html) < HTML_READ_LIMIT:
+                        results_for_html.append({
+                            'id': read_id,
+                            'seq': seq,
+                            'hits': hits
+                        })
 
-                        # Save to Summary buffer (limit check)
-                        if args.summary and len(results_for_summary) < SUMMARY_READ_LIMIT:
-                            results_for_summary.append({
-                                'id': read_id,
-                                'seq': seq,
-                                'hits': hits
-                            })
+                    # Save to Summary buffer (limit check)
+                    if args.summary and len(results_for_summary) < SUMMARY_READ_LIMIT:
+                        results_for_summary.append({
+                            'id': read_id,
+                            'seq': seq,
+                            'hits': hits
+                        })
 
     print(f"\nDone. Processed {total_reads} reads.")
     print(f"Reads with at least one match: {reads_with_hits}")
@@ -119,7 +119,7 @@ def main():
         html_path = Path(args.output).with_suffix('.html')
         print(f"Generating interactive report: {html_path}")
         if len(results_for_html) == HTML_READ_LIMIT:
-            print(f"Note: HTML report limited to first {HTML_READ_LIMIT} matching reads to ensure performance.")
+            print(f"Note: HTML report limited to first {HTML_READ_LIMIT} reads to ensure performance.")
         generate_html(results_for_html, html_path, query_names=query_names)
 
     # 4. Generate Summary
@@ -127,7 +127,7 @@ def main():
         summary_path = Path(args.output).parent / (Path(args.output).stem + "_summary.html")
         print(f"Generating clustered summary: {summary_path}")
         if len(results_for_summary) == SUMMARY_READ_LIMIT:
-            print(f"Note: Summary limited to first {SUMMARY_READ_LIMIT} matching reads.")
+            print(f"Note: Summary limited to first {SUMMARY_READ_LIMIT} reads.")
         clusters = cluster_reads(results_for_summary)
         generate_cluster_html(clusters, summary_path, query_names=query_names)
 
