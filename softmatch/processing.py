@@ -41,10 +41,28 @@ def parse_queries(filepath):
                 idx += 1
     return queries
 
-_COMPLEMENT_TRANS = str.maketrans("ATCGNatcgn", "TAGCNtagcn")
+_COMPLEMENT_TRANS = str.maketrans(
+    "ATCGNRYKMSWBDHVatcgnrykmswbdhv",
+    "TAGCNYRMKSWVHDBtagcnyrmkswvhdb"
+)
 
 def reverse_complement(seq):
     return seq.translate(_COMPLEMENT_TRANS)[::-1]
+
+IUPAC_REGEX = {
+    'R': '[AG]', 'Y': '[CT]', 'S': '[GC]', 'W': '[AT]',
+    'K': '[GT]', 'M': '[AC]', 'B': '[CGT]', 'D': '[AGT]',
+    'H': '[ACT]', 'V': '[ACG]', 'N': '[ACGTN]'
+}
+
+def expand_ambiguous(seq):
+    """
+    Expands IUPAC ambiguous bases into regex character classes.
+    """
+    pattern = ""
+    for base in seq:
+        pattern += IUPAC_REGEX.get(base, base)
+    return pattern
 
 def find_matches(read_seq, queries, max_errors):
     """
@@ -56,7 +74,8 @@ def find_matches(read_seq, queries, max_errors):
         # Forward strand
         fwd_re = q.get('fwd_re')
         if fwd_re is None:
-            fwd_pattern = f"({q['seq']}){{e<={max_errors}}}"
+            expanded_seq = expand_ambiguous(q['seq'])
+            fwd_pattern = f"({expanded_seq}){{e<={max_errors}}}"
             fwd_re = regex.compile(fwd_pattern, regex.BESTMATCH)
 
         matches = fwd_re.finditer(read_seq)
@@ -80,7 +99,8 @@ def find_matches(read_seq, queries, max_errors):
             if rev_seq == q['seq']:
                 continue # Avoid duplicate hits for palindromes
 
-            rev_pattern = f"({rev_seq}){{e<={max_errors}}}"
+            expanded_rev = expand_ambiguous(rev_seq)
+            rev_pattern = f"({expanded_rev}){{e<={max_errors}}}"
             rev_re = regex.compile(rev_pattern, regex.BESTMATCH)
 
         if rev_re:

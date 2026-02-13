@@ -4,7 +4,7 @@ import concurrent.futures
 import itertools
 import regex
 from pathlib import Path
-from .processing import parse_fastq, parse_queries, find_matches, reverse_complement
+from .processing import parse_fastq, parse_queries, find_matches, reverse_complement, expand_ambiguous
 from .visualization import generate_html, generate_cluster_html
 from .clustering import cluster_reads
 
@@ -49,11 +49,13 @@ def main():
 
     # Pre-compile queries for speed
     for q in queries:
-        q['fwd_re'] = regex.compile(f"({q['seq']}){{e<={args.errors}}}", regex.BESTMATCH)
+        expanded_fwd = expand_ambiguous(q['seq'])
+        q['fwd_re'] = regex.compile(f"({expanded_fwd}){{e<={args.errors}}}", regex.BESTMATCH)
         rev_seq = reverse_complement(q['seq'])
         q['rev_seq'] = rev_seq
         if rev_seq != q['seq']:
-            q['rev_re'] = regex.compile(f"({rev_seq}){{e<={args.errors}}}", regex.BESTMATCH)
+            expanded_rev = expand_ambiguous(rev_seq)
+            q['rev_re'] = regex.compile(f"({expanded_rev}){{e<={args.errors}}}", regex.BESTMATCH)
         else:
             q['rev_re'] = None
 
