@@ -33,10 +33,6 @@ def cluster_reads(reads_with_hits):
     clusters = {}
     for read in reads_with_hits:
         hits = filter_hits(read['hits'])
-        if not hits:
-            # Still include them in a "No Hits" cluster if desired?
-            # User wants matches, so maybe skip or put in a special cluster.
-            continue
 
         # Signature is a tuple of (adapter_name, strand)
         signature = tuple((h['name'], h['strand']) for h in hits)

@@ -172,7 +172,7 @@ def generate_html(data, output_path, query_names=None):
 </head>
 <body>
     <div class="container-wrapper">
-        <h1>Softmatch Results <span style="font-weight:normal; font-size:15px; color:var(--muted-text); margin-left: 10px;">Top {len(data)} reads with hits</span></h1>
+        <h1>Softmatch Results <span style="font-weight:normal; font-size:15px; color:var(--muted-text); margin-left: 10px;">Top {len(data)} reads</span></h1>
         <div id="tooltip" class="tooltip"></div>
         <div id="container"></div>
     </div>
@@ -305,14 +305,20 @@ def generate_cluster_html(clusters, output_path, query_names=None):
     for sig, reads in clusters.items():
         if not reads: continue
 
-        sig_name = " + ".join([f"{name}({'+' if strand == 1 else '-'})" for name, strand in sig])
-
-        # Max distance before the first adapter to align everything
-        max_prefix = max(r['hits'][0]['start'] for r in reads)
+        if not sig:
+            sig_name = "No Matches"
+            max_prefix = 0
+        else:
+            sig_name = " + ".join([f"{name}({'+' if strand == 1 else '-'})" for name, strand in sig])
+            # Max distance before the first adapter to align everything
+            max_prefix = max(r['hits'][0]['start'] for r in reads)
 
         cluster_reads = []
         for r in reads:
-            offset = max_prefix - r['hits'][0]['start']
+            if not sig:
+                offset = 0
+            else:
+                offset = max_prefix - r['hits'][0]['start']
 
             cluster_reads.append({
                 'id': r['id'],
