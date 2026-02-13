@@ -57,6 +57,7 @@ def main():
         else:
             q['rev_re'] = None
 
+    query_names = [q['name'] for q in queries]
     print(f"Loaded {len(queries)} query sequences.")
 
     # 2. Process FASTQ
@@ -119,7 +120,7 @@ def main():
         print(f"Generating interactive report: {html_path}")
         if len(results_for_html) == HTML_READ_LIMIT:
             print(f"Note: HTML report limited to first {HTML_READ_LIMIT} matching reads to ensure performance.")
-        generate_html(results_for_html, html_path)
+        generate_html(results_for_html, html_path, query_names=query_names)
 
     # 4. Generate Summary
     if args.summary:
@@ -128,7 +129,7 @@ def main():
         if len(results_for_summary) == SUMMARY_READ_LIMIT:
             print(f"Note: Summary limited to first {SUMMARY_READ_LIMIT} matching reads.")
         clusters = cluster_reads(results_for_summary)
-        generate_cluster_html(clusters, summary_path)
+        generate_cluster_html(clusters, summary_path, query_names=query_names)
 
 if __name__ == "__main__":
     main()
