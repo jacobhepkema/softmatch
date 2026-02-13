@@ -412,6 +412,32 @@ def generate_cluster_html(clusters, output_path):
         .color-4.rev::before {{ border-right-color: #5dc3fc; }}
         .color-5.fwd::after {{ border-left-color: #bc5dfc; }}
         .color-5.rev::before {{ border-right-color: #bc5dfc; }}
+
+        /* Indices */
+        .indices-layer {{
+            position: relative;
+            height: 20px;
+            margin-top: 5px;
+            border-top: 1px solid #eee;
+        }}
+        .index-group {{
+            position: absolute;
+            top: 0;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }}
+        .index-tick {{
+            height: 4px;
+            border-left: 1px solid #aaa;
+        }}
+        .index-label {{
+            font-size: 8px;
+            color: #888;
+            white-space: nowrap;
+            margin-top: 1px;
+        }}
     </style>
 </head>
 <body>
@@ -486,6 +512,31 @@ def generate_cluster_html(clusters, output_path):
 
                 vizArea.appendChild(row);
             }});
+
+            // Indices Layer
+            const indicesLayer = document.createElement('div');
+            indicesLayer.className = 'indices-layer';
+            indicesLayer.style.width = 'calc(' + cluster.max_width + ' * var(--base-w))';
+            for (let i = 0; i < cluster.max_width; i++) {{
+                const pos = i + 1;
+                if (pos === 1 || pos % 50 === 0) {{
+                    const group = document.createElement('div');
+                    group.className = 'index-group';
+                    group.style.left = 'calc(' + (i + 0.5) + ' * var(--base-w))';
+
+                    const tick = document.createElement('div');
+                    tick.className = 'index-tick';
+                    group.appendChild(tick);
+
+                    const lbl = document.createElement('div');
+                    lbl.className = 'index-label';
+                    lbl.textContent = pos;
+                    group.appendChild(lbl);
+
+                    indicesLayer.appendChild(group);
+                }}
+            }}
+            vizArea.appendChild(indicesLayer);
 
             clusterDiv.appendChild(vizArea);
             container.appendChild(clusterDiv);
