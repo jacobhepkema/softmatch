@@ -316,7 +316,7 @@ def generate_cluster_html(clusters, output_path):
     <meta charset="UTF-8">
     <title>Softmatch Cluster Visualization</title>
     <style>
-        body {{ font-family: sans-serif; background: #f0f0f0; padding: 20px; }}
+        body {{ font-family: sans-serif; background: #f0f0f0; padding: 20px; --base-w: 0.25ch; }}
         .cluster-container {{ background: white; border-radius: 8px; padding: 10px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }}
         .cluster-title {{ font-size: 14px; font-weight: bold; margin-bottom: 5px; color: #444; border-bottom: 1px solid #eee; padding-bottom: 2px; }}
 
@@ -469,15 +469,15 @@ def generate_cluster_html(clusters, output_path):
             cluster.reads.forEach(read => {{
                 const row = document.createElement('div');
                 row.className = 'read-row';
-                row.style.width = read.seq_len + 'ch';
-                row.style.marginLeft = read.offset + 'ch';
+                row.style.width = 'calc(' + read.seq_len + ' * var(--base-w))';
+                row.style.marginLeft = 'calc(' + read.offset + ' * var(--base-w))';
 
                 read.hits.forEach((hit, idx) => {{
                     const block = document.createElement('div');
                     const colorIdx = idx % 6;
                     block.className = 'adapter-block color-' + colorIdx + ' ' + (hit.strand === 1 ? 'fwd' : 'rev');
-                    block.style.left = hit.start + 'ch';
-                    block.style.width = hit.len + 'ch';
+                    block.style.left = 'calc(' + hit.start + ' * var(--base-w))';
+                    block.style.width = 'calc(' + hit.len + ' * var(--base-w))';
                     block.onmouseover = (e) => showTooltip(e, hit, read.id);
                     block.onmouseout = hideTooltip;
 
