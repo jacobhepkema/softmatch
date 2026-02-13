@@ -1,6 +1,6 @@
 # softmatch
 
-This python package uses regex to check FASTQ reads for the presence of certain pre-defined (expected) sequences, allowing for a certain number of errors using option `--errors <num_errors>`.
+This (vibe coded - please only use for quick debugging!) python package uses regex to check FASTQ reads for the presence of certain pre-defined (expected) sequences, allowing for a certain number of errors using option `--errors <num_errors>`.
 By specifying `--summary`, the script will additionally cluster the reads by which sequences were detected.
 Disable HTML output with `--no_html`.
 
