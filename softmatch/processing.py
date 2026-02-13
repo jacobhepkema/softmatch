@@ -41,10 +41,10 @@ def parse_queries(filepath):
                 idx += 1
     return queries
 
+_COMPLEMENT_TRANS = str.maketrans("ATCGNatcgn", "TAGCNtagcn")
+
 def reverse_complement(seq):
-    complement = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A', 'N': 'N',
-                  'a': 't', 'c': 'g', 'g': 'c', 't': 'a', 'n': 'n'}
-    return "".join(complement.get(base, base) for base in reversed(seq))
+    return seq.translate(_COMPLEMENT_TRANS)[::-1]
 
 def find_matches(read_seq, queries, max_errors):
     """
@@ -54,8 +54,12 @@ def find_matches(read_seq, queries, max_errors):
     hits = []
     for q in queries:
         # Forward strand
-        fwd_pattern = f"({q['seq']}){{e<={max_errors}}}"
-        matches = regex.finditer(fwd_pattern, read_seq, regex.BESTMATCH)
+        fwd_re = q.get('fwd_re')
+        if fwd_re is None:
+            fwd_pattern = f"({q['seq']}){{e<={max_errors}}}"
+            fwd_re = regex.compile(fwd_pattern, regex.BESTMATCH)
+
+        matches = fwd_re.finditer(read_seq)
         for m in matches:
             start, end = m.span()
             errors = sum(m.fuzzy_counts)
@@ -70,24 +74,29 @@ def find_matches(read_seq, queries, max_errors):
             })
 
         # Reverse strand
-        rev_seq = reverse_complement(q['seq'])
-        if rev_seq == q['seq']:
-            continue # Avoid duplicate hits for palindromes
+        rev_re = q.get('rev_re')
+        if rev_re is None:
+            rev_seq = q.get('rev_seq') or reverse_complement(q['seq'])
+            if rev_seq == q['seq']:
+                continue # Avoid duplicate hits for palindromes
 
-        rev_pattern = f"({rev_seq}){{e<={max_errors}}}"
-        matches = regex.finditer(rev_pattern, read_seq, regex.BESTMATCH)
-        for m in matches:
-            start, end = m.span()
-            errors = sum(m.fuzzy_counts)
-            hits.append({
-                'name': q['name'],
-                'start': start,
-                'end': end,
-                'len': end - start,
-                'errors': errors,
-                'match_seq': m.group(),
-                'strand': -1
-            })
+            rev_pattern = f"({rev_seq}){{e<={max_errors}}}"
+            rev_re = regex.compile(rev_pattern, regex.BESTMATCH)
+
+        if rev_re:
+            matches = rev_re.finditer(read_seq)
+            for m in matches:
+                start, end = m.span()
+                errors = sum(m.fuzzy_counts)
+                hits.append({
+                    'name': q['name'],
+                    'start': start,
+                    'end': end,
+                    'len': end - start,
+                    'errors': errors,
+                    'match_seq': m.group(),
+                    'strand': -1
+                })
 
     # Sort hits by start position
     hits.sort(key=lambda x: x['start'])
